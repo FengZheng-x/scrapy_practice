@@ -2,10 +2,19 @@ import pandas as pd
 import re
 from pyecharts.charts import Bar
 from pyecharts.charts import Line
+from pyecharts.charts import Map
+from pyecharts.charts import Pie
 from pyecharts import options as opts
 from pyecharts.globals import ThemeType
+import json
 
 ZSCORE_THRESHOLD = 3
+tooltip_opts = opts.TooltipOpts(trigger='item',
+                                formatter='{b}: {c}',
+                                background_color='white',
+                                border_color='lightskyblue',
+                                border_width=0.5,
+                                textstyle_opts=opts.TextStyleOpts(color='gray'))
 
 
 def unified_unit(item, num):
@@ -80,8 +89,69 @@ def experence_salary(datas):
     line.render('工作经验与薪资关系图.html')
 
 
-def two_group(datas, gro, num):
-    edu_salary = datas[[gro, num]].groupby(gro).agg('mean').sort_values(num)
+def area_salary(datas):
+    # print(datas['area'])
+    labelx, labely = two_group(datas, 'area', 'salary')
+    m = Map(init_opts=opts.InitOpts(
+        theme=ThemeType.LIGHT
+    ))
+    m.set_global_opts(
+        title_opts=opts.TitleOpts(title='工作地区与薪资关系图'),
+    )
+    map_data = [list(z) for z in zip(labelx, labely)]
+    m.add(series_name='', data_pair=map_data)
+    m.set_global_opts(
+        title_opts=opts.TitleOpts(title="工作地区与薪资关系 (省份)",
+                                  pos_left='center'),
+        visualmap_opts=opts.VisualMapOpts(min_=10000, max_=18000,
+                                          pos_left='45',
+                                          range_text=['high', 'low'],
+                                          range_color=['lightskyblue', 'yellow', 'orangered']),
+        tooltip_opts=tooltip_opts)
+    m.render('工作地区与薪资关系图.html')
+
+
+def area_num(datas):
+    labelx, labely = two_group(datas, 'area', 'salary', 'count')
+    m = Map(init_opts=opts.InitOpts(
+        theme=ThemeType.LIGHT
+    ))
+    map_data = [list(z) for z in zip(labelx, labely)]
+    m.add(series_name='', data_pair=map_data)
+    m.set_global_opts(
+        title_opts=opts.TitleOpts(title="工作地区分布 (省份)",
+                                  pos_left='center'),
+        visualmap_opts=opts.VisualMapOpts(min_=0, max_=8500,
+                                          pos_left='45',
+                                          range_text=['high', 'low'],
+                                          range_color=['lightskyblue', 'yellow', 'orangered']),
+        tooltip_opts=tooltip_opts)
+    m.render('工作地区分布图.html')
+
+
+def company_type(datas):
+    labelx, labely = two_group(datas, 'companytype_text', 'salary', 'count')
+    pie = Pie(init_opts=opts.InitOpts(
+        theme=ThemeType.LIGHT
+    ))
+    pieData = [list(z) for z in zip(labelx, labely)]
+    pie.add(series_name='', data_pair=pieData)
+    pie.set_global_opts(
+        title_opts=opts.TitleOpts(title="公司性质分布图",
+
+                                  pos_left='center'),
+        tooltip_opts=tooltip_opts,
+        legend_opts=opts.LegendOpts(
+            pos_left=20,
+            orient='vertical'
+        )
+
+    )
+    pie.render('公司性质分布图.html')
+
+
+def two_group(datas, gro, num, polymerization='mean'):
+    edu_salary = datas[[gro, num]].groupby(gro).agg(polymerization).sort_values(num)
     # print(list(edu_salary.mean().index))
     edu_salary_x = edu_salary.index
     edu_salary_y = edu_salary.values
@@ -112,6 +182,14 @@ if __name__ == '__main__':
     datas.drop(datas[z_score(datas['salary'], mean, std) == True].index, inplace=True)
     # print(datas)
 
+    datas['workarea_text'] = [str(i).split('-')[0] for i in datas['workarea_text']]
+    # print(datas['workarea_text'])
+
+    with open('city_province.json', 'r', encoding='utf-8') as f:
+        area_map = dict(json.load(f))
+        # print(area_map)
+        datas['area'] = datas['workarea_text'].map(lambda x: area_map.get(x))
+
     '''
     可视化部分
     学历和薪资的关系
@@ -126,3 +204,9 @@ if __name__ == '__main__':
     edu_salary(datas)
     # 工作经验和薪资的关系
     experence_salary(datas)
+    # 地区与薪资的关系
+    area_salary(datas)
+    # 地区和人数的关系
+    area_num(datas)
+    # 企业性质（饼图）
+    company_type(datas)
