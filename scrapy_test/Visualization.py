@@ -1,6 +1,7 @@
 import pandas as pd
 import re
 from pyecharts.charts import Bar
+from pyecharts.charts import Line
 from pyecharts import options as opts
 from pyecharts.globals import ThemeType
 
@@ -49,7 +50,38 @@ def z_score(item, mean, std):
 
 
 def edu_salary(datas):  # 学历和薪资的关系
-    edu_salary = datas[['education', 'salary']].groupby('education').agg('mean').sort_values('salary')
+    labelx, labely = two_group(datas, 'education', 'salary')
+    bar = Bar(init_opts=opts.InitOpts(
+        theme=ThemeType.LIGHT
+    ))
+    bar.set_global_opts(
+        title_opts=opts.TitleOpts(title='学历与薪资关系图'),
+        xaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(rotate=25))
+    )
+    bar.add_xaxis(labelx)
+    bar.add_yaxis('学历', labely, bar_width=50)
+    bar.render('学历与薪资关系图.html')
+
+
+def experence_salary(datas):
+    labelx, labely = two_group(datas, 'workExperence', 'salary')
+    dict_y = {}
+    for i in range(len(labelx)):
+        dict_y[labelx[i]] = labely[i]
+    line = Line(init_opts=opts.InitOpts(
+        theme=ThemeType.LIGHT
+    ))
+    line.set_global_opts(
+        title_opts=opts.TitleOpts(title='工作经验与薪资关系图'),
+        xaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(rotate=25))
+    )
+    line.add_xaxis(labelx)
+    line.add_yaxis('工作经验', labely)
+    line.render('工作经验与薪资关系图.html')
+
+
+def two_group(datas, gro, num):
+    edu_salary = datas[[gro, num]].groupby(gro).agg('mean').sort_values(num)
     # print(list(edu_salary.mean().index))
     edu_salary_x = edu_salary.index
     edu_salary_y = edu_salary.values
@@ -62,15 +94,7 @@ def edu_salary(datas):  # 学历和薪资的关系
             labely.append(int(edu_salary_y[x]))
     print(labelx)
     print(labely)
-    bar = Bar(init_opts=opts.InitOpts(
-        theme=ThemeType.LIGHT
-    ))
-    bar.set_global_opts(title_opts=opts.TitleOpts(
-        title='学历与薪资关系图'
-    ))
-    bar.add_xaxis(labelx)
-    bar.add_yaxis('学历', labely)
-    bar.render('学历与薪资关系图.html')
+    return labelx, labely
 
 
 if __name__ == '__main__':
@@ -100,11 +124,5 @@ if __name__ == '__main__':
 
     # 学历和薪资的关系bar图
     edu_salary(datas)
-
-
-    # edu_salary_x = edu_salary.keys
-    # edu_salary_y = edu_salary.mean
-    # print(edu_salary_x)
-    # print(edu_salary_y)
-
-
+    # 工作经验和薪资的关系
+    experence_salary(datas)
