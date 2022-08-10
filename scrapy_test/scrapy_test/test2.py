@@ -1,6 +1,16 @@
-import requests
+from scipy.optimize import minimize
+import numpy as np
 
-url = 'https://search.51job.com/list/000000,000000,0000,00,9,99,%25E5%25A4%25A7%25E6%2595%25B0%25E6%258D%25AE,2,50.html?lang=c&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&ord_field=0&dibiaoid=0&line=&welfare='
-
-r= requests.get(url)
-print(r.text)
+e=1e-10
+fun = lambda x  :(x[0]-0.667)/(x[0]+x[1]+x[2]-2)
+cons =({'type':'eq','fun':lambda x: x[0]*x[1]*x[2]-1},
+    {'type':'ineq','fun':lambda x: x[0]-e},
+    {'type':'ineq','fun':lambda x: x[1]-e},
+    {'type':'ineq','fun':lambda x: x[2]-e}
+    )
+x0=np.array((1.0,1.0,1.0))
+res=minimize(fun,x0,method='SLSQP',constraints=cons)
+print ('最小值：',res.fun)
+print ('最优解：', res.x)
+print ('迭代终止是否成功：',res.success)
+print ('迭代终止原因：',res.message)

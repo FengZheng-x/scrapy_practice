@@ -4,6 +4,7 @@ from pyecharts.charts import Bar
 from pyecharts.charts import Line
 from pyecharts.charts import Map
 from pyecharts.charts import Pie
+from pyecharts.charts import WordCloud
 from pyecharts import options as opts
 from pyecharts.globals import ThemeType
 import json
@@ -162,9 +163,32 @@ def two_group(datas, gro, num, polymerization='mean'):
         if str(edu_salary_x[x]) != '-1':
             labelx.append(edu_salary_x[x])
             labely.append(int(edu_salary_y[x]))
-    print(labelx)
-    print(labely)
+    # print(labelx)
+    # print(labely)
     return labelx, labely
+
+
+def word_cloud(datas):
+    word_dict = {}
+    for kind in datas['companyind_text']:
+        for word in str(kind).split('/'):
+            if not word_dict.__contains__(word):
+                word_dict[word] = 1
+            else:
+                word_dict[word] += 1
+    # print(word_dict)
+    wordCould = [list(z) for z in zip(word_dict.keys(), word_dict.values())]
+    # print(wordCould)
+    wordcloud = WordCloud(init_opts=opts.InitOpts(
+        theme=ThemeType.LIGHT
+    ))
+    wordcloud.add(series_name='', data_pair=wordCould)
+    wordcloud.set_global_opts(
+        title_opts=opts.TitleOpts(title="企业类型词云图",
+                                  pos_left='center'),
+        tooltip_opts=tooltip_opts
+    )
+    wordcloud.render('企业类型词云图.html')
 
 
 if __name__ == '__main__':
@@ -210,3 +234,5 @@ if __name__ == '__main__':
     area_num(datas)
     # 企业性质（饼图）
     company_type(datas)
+    # 行业做成词云
+    word_cloud(datas)
